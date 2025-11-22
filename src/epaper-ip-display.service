@@ -1,0 +1,15 @@
+[Unit]
+Description=E-Paper IP Display Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/epaper-ip
+ExecStart=/usr/bin/python3 /home/pi/epaper-ip/epaper_ip_display.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
