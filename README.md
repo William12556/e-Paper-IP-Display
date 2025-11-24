@@ -49,8 +49,8 @@ sudo apt-get install fonts-liberation
 Extract the release package and run the installer:
 
 ```bash
-tar xzvf epaper-ip-package.tar.gz
-cd epaper-ip-package
+tar xzvf epaper-ip.tar.gz
+cd epaper-ip
 chmod +x epaper-ip-install.sh
 ./epaper-ip-install.sh
 ```
