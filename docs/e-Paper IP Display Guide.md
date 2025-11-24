@@ -10,6 +10,9 @@ Create a folder named epaper-ip-package with the following files:
 epaper-ip-package/
 ├── epaper_ip_display.py          # Python script displaying the IP on e-Paper
 ├── epd2in13_V4.py               # Waveshare e-Paper V4 driver file
+├── epdconfig.py                 # Hardware configuration module
+├── DEV_Config_64.so             # Device configuration library (64-bit)
+├── sysfs_software_spi.so        # SPI communication library
 ├── epaper-ip-install.sh         # Installation + service setup shell script
 └── epaper-ip-display.service    # systemd service file to run the script on boot
 ```
@@ -45,7 +48,9 @@ def draw_text(epd, text):
     image = Image.new('1', (epd.width, epd.height), 255)  # Clear white
     draw = ImageDraw.Draw(image)
     font = ImageFont.load_default()
-    w, h = draw.textsize(text, font=font)
+    bbox = draw.textbbox((0, 0), text, font=font)
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
     x = (epd.width - w) // 2
     y = (epd.height - h) // 2
     draw.text((x, y), text, font=font, fill=0)  # Black text
@@ -77,10 +82,29 @@ if __name__ == '__main__':
 
 ⸻
 
-3. Waveshare Driver File — epd2in13_V4.py
-	•	Copy this file from the Waveshare e-Paper GitHub repo's RaspberryPi_JetsonNano/python folder.
-	•	This is the official driver for the 2.13" V4 e-paper.
-	•	Ensure it is in the same directory as your epaper_ip_display.py.
+3. Required Waveshare Files
+
+Copy the following files from the Waveshare e-Paper GitHub repository (`RaspberryPi_JetsonNano/python/lib/waveshare_epd`):
+
+**Driver and Configuration:**
+- `epd2in13_V4.py` - Official driver for 2.13" V4 e-paper
+- `epdconfig.py` - Hardware configuration and GPIO initialization
+
+**Binary Libraries (64-bit systems):**
+- `DEV_Config_64.so` - Device configuration library
+- `sysfs_software_spi.so` - SPI communication library
+
+**Note:** For 32-bit systems, use `DEV_Config_32.so` instead of `DEV_Config_64.so`.
+
+**Driver Modification Required:**
+Edit `epd2in13_V4.py` line 32 to change:
+```python
+from . import epdconfig
+```
+to:
+```python
+import epdconfig
+```
 
 ⸻
 
@@ -94,7 +118,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=epaper
+User=root
 WorkingDirectory=/opt/epaper-ip
 ExecStart=/usr/bin/python3 /opt/epaper-ip/epaper_ip_display.py
 Restart=always
@@ -104,7 +128,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-The service runs under a dedicated system user 'epaper' with no shell access for security.
+The service runs as root to access GPIO hardware (`/dev/mem`, `/dev/gpiomem`).
 
 ⸻
 
@@ -118,6 +142,9 @@ INSTALL_DIR="/opt/epaper-ip"
 SERVICE_FILE="epaper-ip-display.service"
 SCRIPT_FILE="epaper_ip_display.py"
 DRIVER_FILE="epd2in13_V4.py"
+CONFIG_FILE="epdconfig.py"
+SPI_LIB="sysfs_software_spi.so"
+DEV_LIB="DEV_Config_64.so"
 
 echo "Installing e-Paper IP display package..."
 
@@ -133,6 +160,9 @@ sudo mkdir -p "$INSTALL_DIR"
 # Copy script and driver files
 sudo cp "$SCRIPT_FILE" "$INSTALL_DIR/"
 sudo cp "$DRIVER_FILE" "$INSTALL_DIR/"
+sudo cp "$CONFIG_FILE" "$INSTALL_DIR/"
+sudo cp "$SPI_LIB" "$INSTALL_DIR/"
+sudo cp "$DEV_LIB" "$INSTALL_DIR/"
 
 # Copy systemd service file
 cp "$SERVICE_FILE" "/etc/systemd/system/"
@@ -163,7 +193,7 @@ echo "Check status with: sudo systemctl status epaper-ip-display.service"
 To package all the files into a tarball for easy transfer:
 
 ```shell
-tar czvf epaper-ip-package.tar.gz epaper_ip_display.py epd2in13_V4.py epaper-ip-install.sh epaper-ip-display.service
+tar czvf epaper-ip-package.tar.gz epaper_ip_display.py epd2in13_V4.py epdconfig.py DEV_Config_64.so sysfs_software_spi.so epaper-ip-install.sh epaper-ip-display.service
 ```
 
 ⸻
@@ -191,7 +221,7 @@ sudo useradd -r -s /usr/sbin/nologin -d /opt/epaper-ip epaper
 
 # Install files
 sudo mkdir -p /opt/epaper-ip
-sudo cp epaper_ip_display.py epd2in13_V4.py /opt/epaper-ip/
+sudo cp epaper_ip_display.py epd2in13_V4.py epdconfig.py *.so /opt/epaper-ip/
 sudo chown -R epaper:epaper /opt/epaper-ip
 sudo cp epaper-ip-display.service /etc/systemd/system/
 
@@ -217,4 +247,5 @@ Notes
 	•	The IP is updated every 15 seconds but only refreshes the display if the IP has changed.
 	•	If no network connection is found, "No Network" is displayed.
 	•	Make sure SPI and I2C are enabled on your system (raspi-config on Raspberry Pi OS).
-	•	The service runs under a dedicated system user 'epaper' with hardware access but no shell login.
+	•	The service runs as root due to GPIO hardware access requirements (/dev/mem, /dev/gpiomem).
+	•	PIL/Pillow 10.0+ uses textbbox() instead of deprecated textsize() method.

@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=epaper
+User=root
 WorkingDirectory=/opt/epaper-ip
 ExecStart=/usr/bin/python3 /opt/epaper-ip/epaper_ip_display.py
 Restart=always

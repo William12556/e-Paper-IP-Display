@@ -15,6 +15,7 @@ This project implements an e-paper IP display application.
 - Raspberry Pi OS (Debian Bookworm or compatible)
 - Python 3.9+
 - System dependencies: `python3-pil`, `python3-spidev`, `python3-rpi.gpio`
+- Font package: `fonts-liberation` (for display text rendering)
 
 ## Quick Start
 
@@ -34,7 +35,16 @@ sudo raspi-config
 sudo reboot
 ```
 
-### 3. Installation
+### 3. Install Dependencies
+
+Install required font package:
+
+```bash
+sudo apt-get update
+sudo apt-get install fonts-liberation
+```
+
+### 4. Installation
 
 Extract the release package and run the installer:
 
@@ -47,7 +57,7 @@ chmod +x epaper-ip-install.sh
 
 The service starts automatically and persists across reboots.
 
-### 4. Verification
+### 5. Verification
 
 Check service status:
 ```bash
@@ -61,7 +71,7 @@ journalctl -u epaper-ip-display.service -f
 - Shows current IPv4 address or "No Network"
 - Polls network status every 15 seconds
 - Updates display only when IP changes
-- Runs as systemd service under dedicated system user 'epaper'
+- Runs as systemd service with root privileges (required for GPIO access)
 
 ## Waveshare Resources
 

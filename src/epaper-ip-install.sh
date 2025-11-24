@@ -6,6 +6,8 @@ SERVICE_FILE="epaper-ip-display.service"
 SCRIPT_FILE="epaper_ip_display.py"
 DRIVER_FILE="epd2in13_V4.py"
 CONFIG_FILE="epdconfig.py"
+SPI_LIB="sysfs_software_spi.so"
+DEV_LIB="DEV_Config_64.so"
 
 echo "Installing e-Paper IP display package..."
 
@@ -22,6 +24,8 @@ sudo mkdir -p "$INSTALL_DIR"
 sudo cp "$SCRIPT_FILE" "$INSTALL_DIR/"
 sudo cp "$DRIVER_FILE" "$INSTALL_DIR/"
 sudo cp "$CONFIG_FILE" "$INSTALL_DIR/"
+sudo cp "$SPI_LIB" "$INSTALL_DIR/"
+sudo cp "$DEV_LIB" "$INSTALL_DIR/"
 
 # Copy systemd service file
 cp "$SERVICE_FILE" "/etc/systemd/system/"
@@ -33,7 +37,7 @@ sudo chmod +x "$INSTALL_DIR/$SCRIPT_FILE"
 # Install dependencies via apt
 echo "Installing Python dependencies..."
 sudo apt-get update
-sudo apt-get install -y python3-pil python3-pip python3-spidev python3-rpi.gpio
+sudo apt-get install -y python3-pil python3-pip python3-spidev python3-rpi.gpio fonts-liberation
 
 # Reload systemd, enable and start service
 echo "Enabling and starting systemd service..."

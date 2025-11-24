@@ -22,13 +22,37 @@ def get_ip():
         return None
 
 def draw_text(epd, text):
-    image = Image.new('1', (epd.width, epd.height), 255)  # Clear white
+    # Create image with swapped dimensions for rotation
+    image = Image.new('1', (epd.height, epd.width), 255)  # Clear white
     draw = ImageDraw.Draw(image)
-    font = ImageFont.load_default()
-    w, h = draw.textsize(text, font=font)
-    x = (epd.width - w) // 2
-    y = (epd.height - h) // 2
+    
+    # Try common Debian fonts in order
+    font_paths = [
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    ]
+    
+    font = None
+    for font_path in font_paths:
+        try:
+            font = ImageFont.truetype(font_path, 24)
+            break
+        except Exception:
+            continue
+    
+    if font is None:
+        font = ImageFont.load_default()
+    
+    bbox = draw.textbbox((0, 0), text, font=font)
+    w = bbox[2] - bbox[0]
+    h = bbox[3] - bbox[1]
+    x = (epd.height - w) // 2  # Center on wider dimension
+    y = (epd.width - h) // 2   # Center on narrower dimension
     draw.text((x, y), text, font=font, fill=0)  # Black text
+    
+    # Rotate 90° counter-clockwise
+    image = image.rotate(90, expand=True)
     epd.display(epd.getbuffer(image))
 
 def main():
