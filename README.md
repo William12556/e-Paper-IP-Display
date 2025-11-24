@@ -11,7 +11,6 @@ This project implements an e-paper IP display application.
 - `workspace/` - Development workspace
 - `docs/` - Technical documentation
 - `src/` - Source code
-- `deprecated/` - Archived materials
 
 ## Getting Started
 
