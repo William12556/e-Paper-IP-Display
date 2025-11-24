@@ -42,7 +42,7 @@ Extract the release package and run the installer:
 tar xzvf epaper-ip-package.tar.gz
 cd epaper-ip-package
 chmod +x epaper-ip-install.sh
-sudo ./epaper-ip-install.sh
+./epaper-ip-install.sh
 ```
 
 The service starts automatically and persists across reboots.
@@ -61,7 +61,7 @@ journalctl -u epaper-ip-display.service -f
 - Shows current IPv4 address or "No Network"
 - Polls network status every 15 seconds
 - Updates display only when IP changes
-- Runs as systemd service under user 'pi'
+- Runs as systemd service under dedicated system user 'epaper'
 
 ## Waveshare Resources
 
@@ -80,9 +80,8 @@ Official product page:
 - Confirm Version 4 driver in use
 
 **Service fails to start:**
-- Check user permissions: `groups pi`
-- Add to required groups: `sudo usermod -aG spi,i2c,gpio pi`
-- Log out and back in
+- Check service logs: `journalctl -u epaper-ip-display.service -n 50`
+- Verify hardware access: `ls -l /dev/spidev* /dev/gpiomem`
 
 **Touch not functional:**
 - Verify I²C enabled

@@ -1,25 +1,34 @@
 #!/bin/bash
 set -e
 
-INSTALL_DIR="/home/pi/epaper-ip"
+INSTALL_DIR="/opt/epaper-ip"
 SERVICE_FILE="epaper-ip-display.service"
 SCRIPT_FILE="epaper_ip_display.py"
 DRIVER_FILE="epd2in13_V4.py"
+CONFIG_FILE="epdconfig.py"
 
 echo "Installing e-Paper IP display package..."
 
+# Create system user if doesn't exist
+if ! id epaper &>/dev/null; then
+    echo "Creating system user 'epaper'..."
+    sudo useradd -r -s /usr/sbin/nologin -d "$INSTALL_DIR" epaper
+fi
+
 # Create directory if it doesn't exist
-mkdir -p "$INSTALL_DIR"
+sudo mkdir -p "$INSTALL_DIR"
 
 # Copy script and driver files
-cp "$SCRIPT_FILE" "$INSTALL_DIR/"
-cp "$DRIVER_FILE" "$INSTALL_DIR/"
+sudo cp "$SCRIPT_FILE" "$INSTALL_DIR/"
+sudo cp "$DRIVER_FILE" "$INSTALL_DIR/"
+sudo cp "$CONFIG_FILE" "$INSTALL_DIR/"
 
 # Copy systemd service file
 cp "$SERVICE_FILE" "/etc/systemd/system/"
 
-# Make Python script executable
-chmod +x "$INSTALL_DIR/$SCRIPT_FILE"
+# Set ownership and permissions
+sudo chown -R epaper:epaper "$INSTALL_DIR"
+sudo chmod +x "$INSTALL_DIR/$SCRIPT_FILE"
 
 # Install dependencies via apt
 echo "Installing Python dependencies..."

@@ -1,4 +1,4 @@
-Waveshare 2.13” Touch e-Paper HAT (V4) — IP Display Packaging & Deployment Guide
+Waveshare 2.13" Touch e-Paper HAT (V4) — IP Display Packaging & Deployment Guide
 
 ⸻
 
@@ -24,7 +24,7 @@ import socket
 import time
 import logging
 from PIL import Image, ImageDraw, ImageFont
-from waveshare_epd import epd2in13_V4
+import epd2in13_V4
 
 logging.basicConfig(
     level=logging.INFO,
@@ -78,15 +78,15 @@ if __name__ == '__main__':
 ⸻
 
 3. Waveshare Driver File — epd2in13_V4.py
-	•	Copy this file from the Waveshare e-Paper GitHub repo’s RaspberryPi_JetsonNano/python folder.
-	•	This is the official driver for the 2.13” V4 e-paper.
+	•	Copy this file from the Waveshare e-Paper GitHub repo's RaspberryPi_JetsonNano/python folder.
+	•	This is the official driver for the 2.13" V4 e-paper.
 	•	Ensure it is in the same directory as your epaper_ip_display.py.
 
 ⸻
 
 4. systemd Service File — epaper-ip-display.service
 
-```shel
+```shell
 [Unit]
 Description=E-Paper IP Display Service
 After=network-online.target
@@ -94,9 +94,9 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/epaper-ip
-ExecStart=/usr/bin/python3 /home/pi/epaper-ip/epaper_ip_display.py
+User=epaper
+WorkingDirectory=/opt/epaper-ip
+ExecStart=/usr/bin/python3 /opt/epaper-ip/epaper_ip_display.py
 Restart=always
 RestartSec=5
 
@@ -104,7 +104,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Adjust User and WorkingDirectory if your user or folder is different.
+The service runs under a dedicated system user 'epaper' with no shell access for security.
 
 ⸻
 
@@ -114,25 +114,32 @@ Adjust User and WorkingDirectory if your user or folder is different.
 #!/bin/bash
 set -e
 
-INSTALL_DIR="/home/pi/epaper-ip"
+INSTALL_DIR="/opt/epaper-ip"
 SERVICE_FILE="epaper-ip-display.service"
 SCRIPT_FILE="epaper_ip_display.py"
 DRIVER_FILE="epd2in13_V4.py"
 
 echo "Installing e-Paper IP display package..."
 
+# Create system user if doesn't exist
+if ! id epaper &>/dev/null; then
+    echo "Creating system user 'epaper'..."
+    sudo useradd -r -s /usr/sbin/nologin -d "$INSTALL_DIR" epaper
+fi
+
 # Create directory if it doesn't exist
-mkdir -p "$INSTALL_DIR"
+sudo mkdir -p "$INSTALL_DIR"
 
 # Copy script and driver files
-cp "$SCRIPT_FILE" "$INSTALL_DIR/"
-cp "$DRIVER_FILE" "$INSTALL_DIR/"
+sudo cp "$SCRIPT_FILE" "$INSTALL_DIR/"
+sudo cp "$DRIVER_FILE" "$INSTALL_DIR/"
 
 # Copy systemd service file
 cp "$SERVICE_FILE" "/etc/systemd/system/"
 
-# Make Python script executable
-chmod +x "$INSTALL_DIR/$SCRIPT_FILE"
+# Set ownership and permissions
+sudo chown -R epaper:epaper "$INSTALL_DIR"
+sudo chmod +x "$INSTALL_DIR/$SCRIPT_FILE"
 
 # Install dependencies via apt
 echo "Installing Python dependencies..."
@@ -155,32 +162,40 @@ echo "Check status with: sudo systemctl status epaper-ip-display.service"
 
 To package all the files into a tarball for easy transfer:
 
-```shel
+```shell
 tar czvf epaper-ip-package.tar.gz epaper_ip_display.py epd2in13_V4.py epaper-ip-install.sh epaper-ip-display.service
 ```
 
 ⸻
 
-7. Installation Instructions on the Pi
+7. Installation Instructions
 
-After copying epaper-ip-package.tar.gz to your Pi, install with:
+After copying epaper-ip-package.tar.gz to your system, install with:
 
-```shel
+```shell
 tar xzvf epaper-ip-package.tar.gz
 cd epaper-ip-package
 chmod +x epaper-ip-install.sh
 ./epaper-ip-install.sh
 ```
 
+The script requires sudo privileges for system operations.
+
 ⸻
 
 8. Manual Installation (If you want to do it step-by-step)
 
-```shel
-sudo mkdir -p /home/pi/epaper-ip
-sudo cp epaper_ip_display.py epd2in13_V4.py /home/pi/epaper-ip/
+```shell
+# Create system user
+sudo useradd -r -s /usr/sbin/nologin -d /opt/epaper-ip epaper
+
+# Install files
+sudo mkdir -p /opt/epaper-ip
+sudo cp epaper_ip_display.py epd2in13_V4.py /opt/epaper-ip/
+sudo chown -R epaper:epaper /opt/epaper-ip
 sudo cp epaper-ip-display.service /etc/systemd/system/
 
+# Enable and start service
 sudo systemctl daemon-reload
 sudo systemctl enable epaper-ip-display.service
 sudo systemctl start epaper-ip-display.service
@@ -200,6 +215,6 @@ journalctl -u epaper-ip-display.service -f
 Notes
 	•	The script clears the e-paper display on startup to avoid ghosting.
 	•	The IP is updated every 15 seconds but only refreshes the display if the IP has changed.
-	•	If no network connection is found, “No Network” is displayed.
-	•	Make sure SPI and I2C are enabled on your Pi (raspi-config).
-	•	Ensure the user running the service (pi in examples) has permission to access SPI, GPIO, and I2C.
+	•	If no network connection is found, "No Network" is displayed.
+	•	Make sure SPI and I2C are enabled on your system (raspi-config on Raspberry Pi OS).
+	•	The service runs under a dedicated system user 'epaper' with hardware access but no shell login.

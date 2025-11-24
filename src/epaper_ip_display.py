@@ -3,7 +3,8 @@ import socket
 import time
 import logging
 from PIL import Image, ImageDraw, ImageFont
-from waveshare_epd import epd2in13_V4
+#from waveshare_epd import epd2in13_V4
+import epd2in13_V4
 
 logging.basicConfig(
     level=logging.INFO,
