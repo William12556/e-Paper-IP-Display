@@ -113,7 +113,7 @@ Detailed guides available in `docs/`:
 
 ## Important Notice
 
-This software is currently very unproven and in early development stages. The implementation is experimental in nature, serving as a learning exercise in AI-assisted development workflows, protocol-driven project management, and cross-platform embedded systems development. **Actual fitness for purpose is not guaranteed.**
+This software is in early development stages. **Actual fitness for purpose is not guaranteed.**
 
 ## License
 
