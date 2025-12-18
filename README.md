@@ -113,7 +113,7 @@ Detailed guides available in `docs/`:
 
 ## Important Notice
 
-This software is in early development stages. **Actual fitness for purpose is not guaranteed.**
+**Actual fitness for purpose is not guaranteed.**
 
 ## License
 
