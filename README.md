@@ -117,4 +117,6 @@ Detailed guides available in `docs/`:
 
 ## License
 
-MIT License - Copyright (c) 2025 William Watson
+MIT License
+
+Copyright (c) 2025 William Watson
