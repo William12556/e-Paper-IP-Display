@@ -1,11 +1,14 @@
 [project]
-name = "e-paper-ip-display"
+name = "epaper-ip-display"
 version = "1.0.0"
-description = "E-Paper IP display application"
+description = "Waveshare 2.13 inch Touch e-Paper HAT IP address display"
 authors = [{name = "William Watson"}]
 license = {text = "MIT"}
 requires-python = ">=3.9"
 dependencies = [
+    "Pillow>=9.0",
+    "spidev>=3.5",
+    "gpiozero>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -15,9 +18,18 @@ dev = [
     "pytest-cov>=4.0.0",
 ]
 
+[project.scripts]
+epaper-ip-display = "epaper_ip_display.main:main"
+
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "build>=0.10.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+epaper_ip_display = ["*.so"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
