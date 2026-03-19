@@ -206,14 +206,16 @@ architecture:
   processing_logic:
     - "Initialize e-Paper display object"
     - "Clear display to white"
+    - "Retrieve hostname: socket.gethostname()"
     - "Set last_ip cache to None"
     - "Enter infinite while loop:"
     - "  Get current IP from IP Detection Module"
-    - "  Format text: 'IP: {ip}' or 'No Network'"
+    - "  Format line2: 'IP: {ip}' or 'No Network'"
     - "  Compare with cached last_ip"
-    - "  If different, call Display Controller to update"
+    - "  If different, call draw_text(epd, hostname, line2)"
     - "  Update last_ip cache"
     - "  Sleep 15 seconds"
+  change_ref: "change-3f7e9a2b"
   
   error_conditions:
     - condition: "e-Paper initialization failure"
@@ -279,31 +281,36 @@ architecture:
 
 ```yaml
 - name: "Display Controller Module"
-  purpose: "Render text on e-Paper display with centered layout"
+  purpose: "Render two-line text on e-Paper display with centered layout"
+  change_ref: "change-3f7e9a2b"
   
   responsibilities:
     - "Create blank white image buffer"
-    - "Render text centered on display"
+    - "Render two lines of text centered horizontally"
+    - "Stack lines vertically centered as a block"
     - "Send image buffer to e-Paper hardware"
-    - "Use default system font"
+    - "Load TrueType font with fallback chain"
   
   inputs:
     - field: "epd"
       type: "epd2in13_V4.EPD"
       description: "Initialized e-Paper display object"
-    - field: "text"
+    - field: "line1"
       type: "str"
-      description: "Text to display (IP address or status message)"
+      description: "Top line text (hostname)"
+    - field: "line2"
+      type: "str"
+      description: "Bottom line text (IP address or 'No Network')"
   
   outputs:
     - field: "None (side effect: display updated)"
       type: "void"
-      description: "Text rendered on physical e-Paper screen"
+      description: "Two lines rendered on physical e-Paper screen"
   
   key_elements:
     - name: "draw_text"
       type: "function"
-      purpose: "Render centered text on e-Paper display"
+      purpose: "Render two centered lines on e-Paper display"
   
   dependencies:
     internal: []
@@ -311,16 +318,19 @@ architecture:
       - "PIL.Image"
       - "PIL.ImageDraw"
       - "PIL.ImageFont"
+      - "socket.gethostname (hostname retrieved in main)"
   
   processing_logic:
-    - "Create new image: Image.new('1', (epd.width, epd.height), 255)"
+    - "Create new image: Image.new('1', (epd.height, epd.width), 255) — swapped for rotation"
     - "Create drawing context: ImageDraw.Draw(image)"
-    - "Load default font: ImageFont.load_default()"
-    - "Calculate text dimensions: draw.textsize(text, font=font)"
-    - "Calculate centered position: x=(width-w)//2, y=(height-h)//2"
-    - "Draw text: draw.text((x, y), text, font=font, fill=0)"
-    - "Convert to buffer: epd.getbuffer(image)"
-    - "Display: epd.display(buffer)"
+    - "Load TrueType font 24pt with fallback chain; fall back to load_default()"
+    - "Calculate bounding box for each line via textbbox()"
+    - "Compute total block height: h1 + 4 + h2 (4px gap)"
+    - "Calculate vertical start: y_start = (epd.width - total_h) // 2"
+    - "Draw line1 at (x_center_line1, y_start)"
+    - "Draw line2 at (x_center_line2, y_start + h1 + 4)"
+    - "Rotate image 90° counter-clockwise"
+    - "Display: epd.display(epd.getbuffer(image))"
   
   error_conditions:
     - condition: "Display hardware communication failure"
@@ -432,15 +442,19 @@ interfaces:
       raises: []
     
     - name: "draw_text"
-      purpose: "Render text on e-Paper display"
-      signature: "draw_text(epd: EPD, text: str) -> None"
+      purpose: "Render two-line text on e-Paper display"
+      signature: "draw_text(epd: EPD, line1: str, line2: str) -> None"
+      change_ref: "change-3f7e9a2b"
       parameters:
         - name: "epd"
           type: "epd2in13_V4.EPD"
           description: "Initialized e-Paper display object"
-        - name: "text"
+        - name: "line1"
           type: "str"
-          description: "Text to display"
+          description: "Top line (hostname)"
+        - name: "line2"
+          type: "str"
+          description: "Bottom line (IP address or 'No Network')"
       returns:
         type: "None"
         description: "Side effect: updates physical display"
@@ -771,6 +785,7 @@ flowchart TD
 | Version | Date       | Author          | Changes                          |
 | ------- | ---------- | --------------- | -------------------------------- |
 | 0.1.0   | 2025-11-21 | William Watson  | Initial master design document   |
+| 0.2.0   | 2026-03-18 | William Watson  | Added hostname display: updated Display Controller, Main Loop, Internal Interfaces; change-3f7e9a2b |
 
 [Return to Table of Contents](<#table of contents>)
 
