@@ -20,23 +20,25 @@ Created: 2026 March 19
 **Development machine (Mac):**
 - Python 3.9+
 - Build module: `pip install build`
-- Project repository: `/Users/<user>/Documents/GitHub/e-Paper-IP-Display`
+- Project repository cloned locally
+- `gh` CLI for release publishing: `brew install gh`, then `gh auth login`
 
 **Raspberry Pi:**
 - Debian-based OS (tested on Debian 13 Trixie)
 - Python 3.9+
 - Root/sudo access
-- SPI enabled (`raspi-config`)
+- SPI enabled (`raspi-config` → Interface Options → SPI)
 
 **Verify prerequisites:**
 
 ```bash
 # Mac
-python3 --version   # 3.9+
+python3 --version        # 3.9+
 python3 -m pip show build
+gh --version             # required for release.sh only
 
 # Pi
-python3 --version   # 3.9+
+python3 --version        # 3.9+
 ```
 
 [Return to Table of Contents](<#table of contents>)
@@ -45,62 +47,105 @@ python3 --version   # 3.9+
 
 ## 2. Initial Installation
 
-### 2.1. Build Package
+Two workflows are provided: one for development and one for general deployment.
+
+---
+
+### Development Deployment
+
+For use during development and testing. The wheel is built locally and transferred directly to the Pi via SCP. No GitHub release is created.
+
+**Step 1 — Build (Mac)**
 
 ```bash
-# On Mac, in project root
 cd /Users/<user>/Documents/GitHub/e-Paper-IP-Display
 
-# Make script executable (one-time)
-chmod +x build.sh
+# One-time
+chmod +x build.sh install.sh
 
-# Build distribution
 ./build.sh
 ```
 
-The `build.sh` script:
-- Verifies Python 3.9+ and build module
-- Extracts version from `pyproject.toml`
-- Cleans previous builds
-- Creates wheel in `dist/`
-- Displays transfer command
+`build.sh` verifies prerequisites, builds the wheel into `dist/`, and prints next-step commands.
 
-### 2.2. Transfer to Pi
+**Step 2 — Transfer and install**
 
 ```bash
-# From Mac
-scp dist/epaper_ip_display-*.whl pi@<hostname>:/tmp/
-```
+# Transfer wheel and install script in one command
+scp dist/epaper_ip_display-*.whl install.sh pi@<hostname>:/tmp/
 
-### 2.3. Install on Pi
-
-```bash
-# Connect to Pi
+# Install on Pi
 ssh pi@<hostname>
-
-# Make script executable (one-time)
-chmod +x install.sh
-
-# Run install script
-./install.sh /tmp/epaper_ip_display-*.whl
+chmod +x /tmp/install.sh && /tmp/install.sh /tmp/epaper_ip_display-*.whl
 ```
 
-The `install.sh` script:
+---
+
+### General Deployment
+
+For publishing a release to GitHub. `release.sh` calls `build.sh`, then publishes a tagged GitHub release with the wheel and `install.sh` as downloadable assets.
+
+**Step 1 — Build and publish (Mac)**
+
+```bash
+chmod +x release.sh
+./release.sh
+```
+
+On completion, `release.sh` prints the install command for the Pi.
+
+**Step 2 — Install on Pi**
+
+Three options are available.
+
+**Option A — curl (recommended)**
+
+Fetches `install.sh` from the latest release. `install.sh` downloads the wheel automatically.
+
+```bash
+curl -fsSL https://github.com/William12556/e-Paper-IP-Display/releases/latest/download/install.sh -o install.sh
+chmod +x install.sh && ./install.sh
+```
+
+Or with wget:
+
+```bash
+wget -qO install.sh https://github.com/William12556/e-Paper-IP-Display/releases/latest/download/install.sh
+chmod +x install.sh && ./install.sh
+```
+
+To install a specific version:
+
+```bash
+./install.sh 1.0.0
+```
+
+**Option B — pipe to bash**
+
+Minimal keystrokes. Note: the script executes without prior inspection.
+
+```bash
+curl -fsSL https://github.com/William12556/e-Paper-IP-Display/releases/latest/download/install.sh | bash
+```
+
+---
+
+`install.sh` (all options):
 - Installs system dependencies (`python3-venv`, `fonts-liberation`)
 - Creates virtual environment at `/opt/epaper-ip/venv/`
-- Installs the wheel into the venv
+- Installs the wheel
 - Verifies installed version
 - Writes and enables the systemd service
 - Starts the service
 
-### 2.4. Verify
+### 2.3. Verify
 
 ```bash
 sudo systemctl status epaper-ip-display
 sudo journalctl -u epaper-ip-display -f
 ```
 
-Expected: service active, display updates with hostname and IP address.
+Expected: service active, display shows hostname and IP address.
 
 [Return to Table of Contents](<#table of contents>)
 
@@ -108,31 +153,35 @@ Expected: service active, display updates with hostname and IP address.
 
 ## 3. Updates
 
-### 3.1. Build New Version
+Increment `version` in `pyproject.toml`, then follow the same workflow used for initial installation.
 
-Increment `version` in `pyproject.toml`, then:
+**Development deployment:**
 
 ```bash
-# On Mac
+# Mac
 ./build.sh
+scp dist/epaper_ip_display-*.whl install.sh pi@<hostname>:/tmp/
+
+# Pi
+/tmp/install.sh /tmp/epaper_ip_display-*.whl
 ```
 
-### 3.2. Transfer and Install
+**General deployment:**
 
 ```bash
-# Transfer wheel
-scp dist/epaper_ip_display-*.whl pi@<hostname>:/tmp/
+# Mac
+./release.sh
 
-# Connect to Pi
-ssh pi@<hostname>
+# Pi — Option A
+./install.sh
 
-# Run install script
-./install.sh /tmp/epaper_ip_display-*.whl
+# Pi — Option B
+curl -fsSL https://github.com/William12556/e-Paper-IP-Display/releases/latest/download/install.sh | bash
 ```
 
-The install script stops the service, replaces the package, verifies version, and restarts the service.
+The install script stops the running service, replaces the package, verifies the version, and restarts the service.
 
-### 3.3. Verify
+### 3.1. Verify
 
 ```bash
 sudo journalctl -u epaper-ip-display -f
@@ -318,6 +367,8 @@ Common causes:
 | 1.3     | 2026-03-19 | William Watson | Added section clarifications             |
 | 1.4     | 2026-03-19 | William Watson | Renamed to Installation Guide            |
 | 2.0     | 2026-03-19 | William Watson | Restructured for wheel-based deployment. |
+| 2.1     | 2026-03-19 | William Watson | Added GitHub release workflow; three install options (GitHub download, SCP, pipe-to-bash); release.sh |
+| 2.2     | 2026-03-19 | William Watson | Distinguished development and general deployment workflows; surfaced release.sh in build/release section |
 
 ---
 
