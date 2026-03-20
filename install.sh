@@ -87,7 +87,7 @@ echo "==> Install directory: $INSTALL_DIR"
 # ---------------------------------------------------------------------------
 echo "==> Installing system dependencies..."
 sudo apt-get update -qq
-sudo apt-get install -y python3 python3-venv fonts-liberation
+sudo apt-get install -y python3 python3-venv fonts-liberation python3-lgpio
 
 # ---------------------------------------------------------------------------
 # Virtual environment
