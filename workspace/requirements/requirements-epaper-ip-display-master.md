@@ -103,6 +103,17 @@ functional_requirements:
     rationale: "Headless deployment requirement"
     dependencies: []
 
+  - id: "g9d7e810"
+    type: "functional"
+    description: "Display hostname on top line above IP address / No Network"
+    acceptance_criteria:
+      - "System hostname rendered as first line via socket.gethostname()"
+      - "Hostname line appears above IP address or No Network line"
+      - "Both lines centered horizontally on display"
+    source: "requirement_change"
+    rationale: "Device identification without network access"
+    dependencies: ["a3f1b200"]
+
   - id: "f8c6d700"
     type: "functional"
     description: "Automated installation via shell script"
@@ -252,6 +263,9 @@ traceability:
     - req_id: "e7b5c600"
       design_doc: "workspace/design/design-0000-master_epaper-ip-display.md"
       design_section: "Installation Framework"
+    - req_id: "g9d7e810"
+      design_doc: "workspace/design/design-0000-master_epaper-ip-display.md"
+      design_section: "Display Controller Module"
     - req_id: "f8c6d700"
       design_doc: "workspace/design/design-0000-master_epaper-ip-display.md"
       design_section: "Installation Framework"
@@ -271,6 +285,9 @@ traceability:
     - req_id: "e7b5c600"
       component: "epaper-ip-display.service"
       file_path: "src/epaper-ip-display.service"
+    - req_id: "g9d7e810"
+      component: "draw_text"
+      file_path: "src/epaper_ip_display.py"
     - req_id: "f8c6d700"
       component: "epaper-ip-install.sh"
       file_path: "src/epaper-ip-install.sh"
@@ -290,7 +307,7 @@ traceability:
 
 ```yaml
 validation:
-  completeness_check: "Requirements cover all observable behaviours in src/epaper_ip_display.py v0.1.0"
+  completeness_check: "Requirements cover all observable behaviours in src/epaper_ip_display.py v0.1.0 plus requirement change g9d7e810"
   clarity_check: "All requirements have objective acceptance criteria"
   testability_check: "All requirements verifiable on target hardware or via inspection"
   conflicts_identified: []
@@ -305,6 +322,7 @@ validation:
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-03-18 | William Watson | Initial — reverse-engineered from src/epaper_ip_display.py v0.1.0 |
+| 1.1 | 2026-03-19 | William Watson | Added requirement g9d7e810: hostname display above IP/No Network line |
 
 ---
 
