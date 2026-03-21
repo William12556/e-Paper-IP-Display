@@ -206,7 +206,7 @@ architecture:
   processing_logic:
     - "Initialize e-Paper display object"
     - "Clear display to white"
-    - "Retrieve hostname: socket.gethostname()"
+    - "Retrieve FQDN: try subprocess.check_output(['hostname', '-f'], text=True).strip(); except: socket.gethostname()"
     - "Set last_ip cache to None"
     - "Enter infinite while loop:"
     - "  Get current IP from IP Detection Module"
@@ -215,7 +215,7 @@ architecture:
     - "  If different, call draw_text(epd, hostname, line2)"
     - "  Update last_ip cache"
     - "  Sleep 15 seconds"
-  change_ref: "change-3f7e9a2b"
+  change_ref: "change-e2a7f1b3"
   
   error_conditions:
     - condition: "e-Paper initialization failure"
@@ -786,6 +786,7 @@ flowchart TD
 | ------- | ---------- | --------------- | -------------------------------- |
 | 0.1.0   | 2025-11-21 | William Watson  | Initial master design document   |
 | 0.2.0   | 2026-03-18 | William Watson  | Added hostname display: updated Display Controller, Main Loop, Internal Interfaces; change-3f7e9a2b |
+| 0.3.0   | 2026-03-20 | William Watson  | Changed hostname to FQDN via hostname -f with fallback; updated Main Application Loop processing_logic; change-e2a7f1b3 |
 
 [Return to Table of Contents](<#table of contents>)
 

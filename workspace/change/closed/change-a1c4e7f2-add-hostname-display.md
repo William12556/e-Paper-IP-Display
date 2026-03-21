@@ -26,7 +26,7 @@ change_info:
   title: "Add hostname display above IP address / No Network line"
   date: "2026-03-19"
   author: "William Watson"
-  status: "proposed"
+  status: "implemented"
   priority: "low"
   iteration: 1
   coupled_docs:
@@ -225,6 +225,7 @@ traceability:
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-03-19 | William Watson | Initial — restart after failed test (prior: change-3f7e9a2b) |
+| 1.1 | 2026-03-20 | William Watson | Closed — implemented in v1.1.2; verified on target hardware |
 
 ---
 

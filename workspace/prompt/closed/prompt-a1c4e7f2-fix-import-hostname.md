@@ -290,6 +290,7 @@ tactical_brief: |
 |---|---|---|---|
 | 1.0 | 2026-03-19 | William Watson | Initial — fixes broken relative import from prior AEL run (prompt-3f7e9a2b) |
 | 1.1 | 2026-03-20 | William Watson | Revised for fresh AEL run: removed bug-description framing; replaced with verify-then-implement pattern to prevent model from introducing then fixing non-existent bug |
+| 1.2 | 2026-03-20 | William Watson | Closed — AEL SHIP received 2026-03-20; verified on target hardware |
 
 ---
 

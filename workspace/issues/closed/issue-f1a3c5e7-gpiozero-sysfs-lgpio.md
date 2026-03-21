@@ -28,7 +28,7 @@ issue_info:
   title: "Service crash — gpiozero sysfs pin factory incompatible with Debian 13 kernel"
   date: "2026-03-20"
   reporter: "William Watson"
-  status: "open"
+  status: "closed"
   severity: "critical"
   type: "defect"
   iteration: 1
@@ -193,9 +193,12 @@ resolution:
     3. Build new wheel; deploy via install.sh.
     No changes to epdconfig.py or application logic required.
   change_ref: ""
-  resolved_date: ""
-  resolved_by: ""
-  fix_description: ""
+  resolved_date: "2026-03-20"
+  resolved_by: "William Watson"
+  fix_description: >
+    Removed lgpio from pyproject.toml pip dependencies. Rebuilt venv with
+    --system-site-packages in install.sh so python3-lgpio (apt) is visible.
+    Deployed as v1.1.3. Verified on target hardware 2026-03-20.
 ```
 
 [Return to Table of Contents](<#table of contents>)
@@ -241,6 +244,7 @@ notes: >
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-03-20 | William Watson | Initial |
+| 1.1 | 2026-03-20 | William Watson | Closed — resolved via trivial change; verified on target hardware |
 
 ---
 

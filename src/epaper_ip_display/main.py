@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import socket
+import subprocess
 import time
 import logging
 from PIL import Image, ImageDraw, ImageFont
@@ -67,7 +68,10 @@ def main():
     logging.info("Clearing display")
     epd.Clear()
 
-    hostname = socket.gethostname()
+    try:
+        hostname = subprocess.check_output(['hostname', '-f'], text=True).strip()
+    except Exception:
+        hostname = socket.gethostname()
     last_ip = None
 
     while True:

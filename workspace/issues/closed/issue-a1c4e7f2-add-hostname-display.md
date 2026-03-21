@@ -25,7 +25,7 @@ issue_info:
   title: "Add hostname display above IP address / No Network line"
   date: "2026-03-19"
   reporter: "William Watson"
-  status: "open"
+  status: "closed"
   severity: "low"
   type: "requirement_change"
   iteration: 1
@@ -122,9 +122,12 @@ resolution:
   target_date: "2026-03-19"
   approach: "Implement via T02 change and T04 AEL prompt"
   change_ref: "change-a1c4e7f2"
-  resolved_date: ""
-  resolved_by: ""
-  fix_description: ""
+  resolved_date: "2026-03-20"
+  resolved_by: "William Watson"
+  fix_description: >
+    Implemented in src/epaper_ip_display/main.py v1.1.2. draw_text() updated
+    to two-line signature; hostname retrieved via socket.gethostname() in
+    main() before polling loop. Verified on target hardware 2026-03-20.
 ```
 
 [Return to Table of Contents](<#table of contents>)
@@ -153,6 +156,7 @@ traceability:
 | Version | Date | Author | Changes |
 |---|---|---|---|
 | 1.0 | 2026-03-19 | William Watson | Initial — restart after failed test (prior: issue-3f7e9a2b) |
+| 1.1 | 2026-03-20 | William Watson | Closed — verified on target hardware; hostname and IP displayed correctly |
 
 ---
 

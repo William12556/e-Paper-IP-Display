@@ -105,13 +105,13 @@ functional_requirements:
 
   - id: "g9d7e810"
     type: "functional"
-    description: "Display hostname on top line above IP address / No Network"
+    description: "Display FQDN on top line above IP address / No Network"
     acceptance_criteria:
-      - "System hostname rendered as first line via socket.gethostname()"
-      - "Hostname line appears above IP address or No Network line"
+      - "FQDN retrieved via subprocess call to 'hostname -f'; fallback to socket.gethostname() on failure"
+      - "FQDN line appears above IP address or No Network line"
       - "Both lines centered horizontally on display"
     source: "requirement_change"
-    rationale: "Device identification without network access"
+    rationale: "Device identification with fully qualified name; distinguishes devices sharing a short hostname"
     dependencies: ["a3f1b200"]
 
   - id: "f8c6d700"
@@ -323,6 +323,7 @@ validation:
 |---|---|---|---|
 | 1.0 | 2026-03-18 | William Watson | Initial — reverse-engineered from src/epaper_ip_display.py v0.1.0 |
 | 1.1 | 2026-03-19 | William Watson | Added requirement g9d7e810: hostname display above IP/No Network line |
+| 1.2 | 2026-03-20 | William Watson | Amended g9d7e810: changed from short hostname to FQDN via hostname -f; added fallback to socket.gethostname() |
 
 ---
 

@@ -1,12 +1,12 @@
 # AEL Context Budget Report
 
-Generated: 2026-03-20 11:41:46
+Generated: 2026-03-20 13:39:22
 Model: Devstral-Small-2-24B-Instruct-2512
 Context window: 393,216 tokens
 
 ## Initial task load
-Estimated tokens at task start: 284 tokens (0.1% of window)
-Headroom available: 392,932 tokens
+Estimated tokens at task start: 255 tokens (0.1% of window)
+Headroom available: 392,961 tokens
 
 ## Budget thresholds
 Warn at:  314,572 tokens (80%)

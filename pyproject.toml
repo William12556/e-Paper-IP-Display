@@ -1,6 +1,6 @@
 [project]
 name = "epaper-ip-display"
-version = "1.1.1"
+version = "1.1.4"
 description = "Waveshare 2.13 inch Touch e-Paper HAT IP address display"
 authors = [{name = "William Watson"}]
 license = {text = "MIT"}
@@ -9,7 +9,6 @@ dependencies = [
     "Pillow>=9.0",
     "spidev>=3.5",
     "gpiozero>=2.0",
-    "lgpio>=0.2",
 ]
 
 [project.optional-dependencies]

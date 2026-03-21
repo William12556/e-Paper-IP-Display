@@ -95,7 +95,11 @@ sudo apt-get install -y python3 python3-venv fonts-liberation python3-lgpio
 if [ ! -d "$VENV_DIR" ]; then
     echo "==> Creating virtual environment at $VENV_DIR"
     sudo mkdir -p "$INSTALL_DIR"
-    sudo python3 -m venv "$VENV_DIR"
+    sudo python3 -m venv --system-site-packages "$VENV_DIR"
+else
+    echo "==> Rebuilding virtual environment with --system-site-packages"
+    sudo rm -rf "$VENV_DIR"
+    sudo python3 -m venv --system-site-packages "$VENV_DIR"
 fi
 
 # ---------------------------------------------------------------------------
