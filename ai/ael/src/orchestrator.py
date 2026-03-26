@@ -364,6 +364,32 @@ def extract_reasoning(message, content: str, log: logging.Logger) -> tuple[str, 
     return reasoning, content
 
 
+def format_tool_signatures(tools: list[dict]) -> str:
+    """
+    Render tool names with their parameter signatures for injection
+    into the recipe system prompt via {{TOOLS}}.
+
+    Format per tool:
+        - tool_name(param: type [required], param: type)
+
+    Grounded in the live MCP schema so the model cannot hallucinate
+    argument names. Descriptions are omitted to keep prompt compact.
+    """
+    lines = []
+    for t in tools:
+        fn = t.get("function", {})
+        name = fn.get("name", "")
+        params_schema = fn.get("parameters", {})
+        props = params_schema.get("properties", {})
+        required = set(params_schema.get("required", []))
+        args = []
+        for p, schema in props.items():
+            req = " [required]" if p in required else ""
+            args.append(f"{p}: {schema.get('type', 'any')}{req}")
+        lines.append(f"  - {name}({', '.join(args)})")
+    return "\n".join(lines)
+
+
 async def run_phase(
     client: AsyncOpenAI,
     mcp: MCPClient,
@@ -386,7 +412,7 @@ async def run_phase(
     tools = mcp.get_openai_tools()
 
     # Build real tool name list and inject into recipe system prompt
-    tool_list = "\n".join(f"  - {t['function']['name']}" for t in tools)
+    tool_list = format_tool_signatures(tools)
     system_prompt = recipe.get("instructions", "").replace("{{TOOLS}}", tool_list)
 
     messages: list[dict] = [
