@@ -50,7 +50,7 @@ Provides deterministic behavioral constraints for:
 
 ## Documentation
 
-See [BEHAVIORAL_STANDARDS_GUIDE.md](<BEHAVIORAL_STANDARDS_GUIDE.md>) for complete implementation details.
+See [BEHAVIORAL_STANDARDS_GUIDE.md](<e-Paper-IP-Display/ai/doc/examples/BEHAVIORAL_STANDARDS_GUIDE.md>) for complete implementation details.
 
 ## Integration
 
