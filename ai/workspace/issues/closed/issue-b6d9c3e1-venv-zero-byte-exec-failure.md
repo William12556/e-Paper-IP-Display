@@ -29,7 +29,7 @@ issue_info:
   title: "Service EXEC failure (203) — zero-byte venv files after unclean shutdown"
   date: "2026-07-01"
   reporter: "William Watson"
-  status: "open"
+  status: "closed"
   severity: "critical"
   type: "defect"
   iteration: 1
@@ -197,10 +197,13 @@ resolution:
        (dmesg | grep -i 'mmc\|ext4\|I/O') to distinguish a one-off truncation
        from a failing card.
   change_ref: "change-b6d9c3e1"
-  resolved_date: ""
-  resolved_by: ""
+  resolved_date: "2026-07-01"
+  resolved_by: "William Watson"
   fix_description: >
-    Pending hardware verification after reinstall with the updated install.sh.
+    Confirmed on target hardware following change-b6d9c3e1 iteration 2:
+    service starts under direct module invocation, no 203/EXEC, and the
+    sys.path shadowing regression does not recur under
+    WorkingDirectory=$INSTALL_DIR/run.
 ```
 
 [Return to Table of Contents](<#table of contents>)
@@ -259,6 +262,7 @@ notes: >
 |---|---|---|---|
 | 1.0 | 2026-07-01 | William Watson | Initial — root cause identified; fix implemented in repository, pending hardware verification |
 | 1.1 | 2026-07-01 | William Watson | Noted deployment of change-b6d9c3e1 iteration 1 surfaced a regression (sys.path shadowing by a legacy flat-file module under -m invocation); corrected in change-b6d9c3e1 iteration 2. Issue remains open pending hardware verification. |
+| 1.2 | 2026-07-01 | William Watson | Closed — hardware verification confirmed; no recurrence of 203/EXEC or sys.path shadowing |
 
 ---
 

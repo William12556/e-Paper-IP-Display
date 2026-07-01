@@ -30,9 +30,9 @@ scope:
     wrapper to 'venv/bin/python -m epaper_ip_display.main'; (2) add a
     verification step that the venv interpreter executes and the entry-point
     module resolves to a non-empty file; (3) point the unit's WorkingDirectory
-    at /tmp instead of INSTALL_DIR, to remove INSTALL_DIR from sys.path under
-    -m invocation; (4) remove legacy flat-file artefacts from INSTALL_DIR
-    before venv creation.
+    at a dedicated RUN_DIR ($INSTALL_DIR/run) instead of INSTALL_DIR itself,
+    to remove INSTALL_DIR from sys.path under -m invocation; (4) remove
+    legacy flat-file artefacts from INSTALL_DIR before venv creation.
   affected_components:
     - name: "install.sh — systemd unit heredoc"
       file_path: "install.sh"
@@ -66,11 +66,13 @@ rational:
   proposed_solution: >
     Invoke the module directly. main.py contains 'if __name__ == "__main__":
     main()', so 'python -m epaper_ip_display.main' runs main(). To prevent the
-    sys.path shadowing regression, WorkingDirectory is set to /tmp rather than
-    removed (systemd requires a value; /tmp avoids any risk to / or
-    INSTALL_DIR). The legacy flat-file artefacts are also removed from
-    INSTALL_DIR by install.sh, addressing the shadowing artefact directly as
-    well as the mechanism.
+    sys.path shadowing regression, WorkingDirectory is set to a dedicated
+    RUN_DIR ($INSTALL_DIR/run, created during install) rather than removed
+    (systemd requires a value; RUN_DIR avoids any risk to / and contains no
+    legacy artefacts, so it cannot itself become a shadowing source).
+    The legacy flat-file artefacts are also removed from INSTALL_DIR by
+    install.sh, addressing the shadowing artefact directly as well as the
+    mechanism.
   alternatives_considered:
     - option: "Re-run install.sh only (rebuild venv)"
       reason_rejected: "Restores files but leaves the fragile wrapper in the execution path; does not detect recurrence"
@@ -99,9 +101,10 @@ technical_details:
     Legacy flat-file artefacts remain at INSTALL_DIR from prior deployment.
   proposed_behavior: >
     Generated unit: ExecStart=$VENV_DIR/bin/python -m epaper_ip_display.main,
-    WorkingDirectory=/tmp. Verification additionally runs the interpreter and
-    confirms the entry-point module resolves to a non-empty file. Legacy
-    flat-file artefacts removed from INSTALL_DIR before venv creation.
+    WorkingDirectory=$INSTALL_DIR/run (RUN_DIR, created during install).
+    Verification additionally runs the interpreter and confirms the
+    entry-point module resolves to a non-empty file. Legacy flat-file
+    artefacts removed from INSTALL_DIR before venv creation.
   implementation_approach: |
     1. In the systemd heredoc, replace:
          ExecStart=$VENV_DIR/bin/epaper-ip-display
@@ -110,7 +113,9 @@ technical_details:
     2. In the systemd heredoc, replace:
          WorkingDirectory=$INSTALL_DIR
        with:
-         WorkingDirectory=/tmp
+         WorkingDirectory=$RUN_DIR
+       where RUN_DIR=$INSTALL_DIR/run, created via mkdir before the unit
+       is written
     3. After the existing version-verification block, add:
          - interpreter check: "$VENV_DIR/bin/python" --version
          - entry-point check: find_spec('epaper_ip_display.main') resolves and
@@ -121,7 +126,7 @@ technical_details:
   code_changes:
     - component: "install.sh"
       file: "install.sh"
-      change_summary: "Change generated ExecStart to module invocation; set WorkingDirectory to /tmp; add interpreter and entry-point integrity checks; add legacy artefact cleanup"
+      change_summary: "Change generated ExecStart to module invocation; set WorkingDirectory to a dedicated RUN_DIR ($INSTALL_DIR/run); add interpreter and entry-point integrity checks; add legacy artefact cleanup"
       functions_affected: []
       classes_affected: []
   data_changes: []
@@ -141,7 +146,7 @@ testing_requirements:
   test_approach: "Manual integration test on target hardware"
   test_cases:
     - scenario: "Reinstall via updated install.sh"
-      expected_result: "Verification passes; unit ExecStart uses python -m; WorkingDirectory=/tmp; legacy artefacts removed; service active"
+      expected_result: "Verification passes; unit ExecStart uses python -m; WorkingDirectory=$INSTALL_DIR/run; legacy artefacts removed; service active"
     - scenario: "Simulate empty entry-point module (truncate main.py) before verification"
       expected_result: "install.sh aborts with entry-point integrity error"
     - scenario: "Service start after clean reboot"
@@ -172,9 +177,11 @@ implementation:
 verification:
   implemented_date: "2026-07-01"
   implemented_by: "Claude Desktop (Strategic Domain)"
-  verification_date: ""
-  verified_by: ""
-  test_results: "Pending hardware verification."
+  verification_date: "2026-07-01"
+  verified_by: "William Watson"
+  test_results: >
+    Confirmed on target hardware. Service active, no 203/EXEC, no
+    ModuleNotFoundError. Display renders and updates on interface change.
   issues_found: []
 
 traceability:
@@ -203,6 +210,16 @@ version_history:
     author: "William Watson"
     changes:
       - "Iteration 2: corrected regression — WorkingDirectory changed from INSTALL_DIR to /tmp; added legacy flat-file artefact cleanup to install.sh"
+  - version: "1.2"
+    date: "2026-07-01"
+    author: "William Watson"
+    changes:
+      - "Documentation correction: WorkingDirectory as implemented is $INSTALL_DIR/run (RUN_DIR), not /tmp as recorded in version 1.1. No code change; install.sh already used RUN_DIR. Document updated to match implementation."
+  - version: "1.3"
+    date: "2026-07-01"
+    author: "William Watson"
+    changes:
+      - "Closed — hardware verification confirmed"
 
 metadata:
   copyright: "Copyright (c) 2025 William Watson. This work is licensed under the MIT License."

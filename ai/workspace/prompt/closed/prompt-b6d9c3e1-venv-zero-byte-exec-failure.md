@@ -119,6 +119,18 @@ tactical_brief: |
 
 notes: "Executed directly by Claude Desktop, not the AEL loop. Recorded for triad completeness."
 
+version_history:
+  - version: "1.0"
+    date: "2026-07-01"
+    author: "William Watson"
+    changes:
+      - "Initial"
+  - version: "1.1"
+    date: "2026-07-01"
+    author: "William Watson"
+    changes:
+      - "Closed — hardware verification confirmed"
+
 metadata:
   template_version: "1.0"
   schema_type: "t04_prompt"
