@@ -35,7 +35,7 @@ Created: 2026 March 19
 # Mac
 python3 --version        # 3.9+
 python3 -m pip show build
-gh --version             # required for release.sh only
+gh --version             # required for bin/release.sh only
 
 # Pi
 python3 --version        # 3.9+
@@ -61,9 +61,9 @@ For use during development and testing. The wheel is built locally and transferr
 cd /Users/<user>/Documents/GitHub/e-Paper-IP-Display
 
 # One-time
-chmod +x build.sh install.sh
+chmod +x bin/build.sh bin/install.sh
 
-./build.sh
+./bin/build.sh
 ```
 
 `build.sh` verifies prerequisites, builds the wheel into `dist/`, and prints next-step commands.
@@ -72,11 +72,11 @@ chmod +x build.sh install.sh
 
 ```bash
 # Transfer wheel and install script in one command
-scp dist/epaper_ip_display-*.whl install.sh pi@<hostname>:/tmp/
+scp dist/epaper_ip_display-*.whl bin/install.sh pi@<hostname>:~/
 
 # Install on Pi
 ssh pi@<hostname>
-chmod +x /tmp/install.sh && /tmp/install.sh /tmp/epaper_ip_display-*.whl
+chmod +x ~/install.sh && ~/install.sh ~/epaper_ip_display-*.whl
 ```
 
 ---
@@ -88,8 +88,8 @@ For publishing a release to GitHub. `release.sh` calls `build.sh`, then publishe
 **Step 1 — Build and publish (Mac)**
 
 ```bash
-chmod +x release.sh
-./release.sh
+chmod +x bin/release.sh
+./bin/release.sh
 ```
 
 On completion, `release.sh` prints the install command for the Pi.
@@ -159,18 +159,18 @@ Increment `version` in `pyproject.toml`, then follow the same workflow used for 
 
 ```bash
 # Mac
-./build.sh
-scp dist/epaper_ip_display-*.whl install.sh pi@<hostname>:/tmp/
+./bin/build.sh
+scp dist/epaper_ip_display-*.whl bin/install.sh pi@<hostname>:~/
 
 # Pi
-/tmp/install.sh /tmp/epaper_ip_display-*.whl
+~/install.sh ~/epaper_ip_display-*.whl
 ```
 
 **General deployment:**
 
 ```bash
 # Mac
-./release.sh
+./bin/release.sh
 
 # Pi — Option A
 ./install.sh
@@ -224,6 +224,7 @@ sudo journalctl -u epaper-ip-display --since "1 hour ago"
 | Path | Description |
 |---|---|
 | `/opt/epaper-ip/venv/` | Virtual environment |
+| `/opt/epaper-ip/run/` | Service working directory (runtime only, empty at install) |
 | `/etc/systemd/system/epaper-ip-display.service` | Service file |
 
 [Return to Table of Contents](<#table of contents>)
@@ -310,14 +311,14 @@ python3 -m pip install build
 
 **Permission error on build.sh:**
 ```bash
-chmod +x build.sh
+chmod +x bin/build.sh
 ```
 
 ### 7.2. Install Failures
 
 **Version mismatch after install:**
 ```bash
-sudo /opt/epaper-ip/venv/bin/pip install --force-reinstall /tmp/epaper_ip_display-*.whl
+sudo /opt/epaper-ip/venv/bin/pip install --force-reinstall ~/epaper_ip_display-*.whl
 ```
 
 **venv creation fails:**
@@ -369,6 +370,8 @@ Common causes:
 | 2.0     | 2026-03-19 | William Watson | Restructured for wheel-based deployment. |
 | 2.1     | 2026-03-19 | William Watson | Added GitHub release workflow; three install options (GitHub download, SCP, pipe-to-bash); release.sh |
 | 2.2     | 2026-03-19 | William Watson | Distinguished development and general deployment workflows; surfaced release.sh in build/release section |
+| 2.3     | 2026-07-01 | — | Corrected script invocation paths: build.sh, release.sh, install.sh relocated to bin/ |
+| 2.4     | 2026-07-01 | William Watson | Removed /tmp from installation workflow; transfer/staging now uses home directory; service working directory now /opt/epaper-ip/run/ |
 
 ---
 
