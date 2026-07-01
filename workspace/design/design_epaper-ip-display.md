@@ -37,13 +37,14 @@ project_info:
 
 ```yaml
 scope:
-  purpose: "Display Raspberry Pi WiFi IPv4 address on Waveshare 2.13\" e-Paper HAT V4 with automatic refresh on IP change and systemd service integration"
+  purpose: "Display Raspberry Pi hostname and the IPv4 address of the usb0 and wlan0 interfaces on Waveshare 2.13\" e-Paper HAT V4 with automatic refresh on address change and systemd service integration"
   
   in_scope:
-    - "IPv4 address detection for WiFi interface only"
+    - "IPv4 address detection for the usb0 and wlan0 interfaces"
     - "E-Paper display rendering with centered text"
-    - "Automatic IP change detection and display refresh"
-    - "Network disconnection handling with 'No Network' display"
+    - "Automatic address change detection and display refresh"
+    - "Per-interface 'no IP' indication when an interface lacks an IPv4 address"
+    - "Detection of pi-netconfig access point mode via wlan0 address match against the known AP IP"
     - "Systemd service for automatic startup on boot"
     - "Automated installation and deployment script"
     - "Service restart on failure"
@@ -51,10 +52,10 @@ scope:
   out_scope:
     - "Configuration files"
     - "IPv6 support"
-    - "Multiple network interface support"
-    - "Ethernet interface detection"
+    - "Dynamic discovery of arbitrary interfaces (interface set fixed to usb0, wlan0)"
+    - "Direct integration with pi-netconfig (no shared process, IPC, or imported package; detection is external and heuristic)"
     - "Logging capabilities"
-    - "Display customization beyond IP text"
+    - "Display customization beyond hostname and interface text"
     - "Web interface or remote control"
     - "Multi-display support"
   
@@ -77,17 +78,17 @@ scope:
 
 ```yaml
 system_overview:
-  description: "Standalone Python application running as systemd service that continuously monitors WiFi interface IPv4 address and displays it on e-Paper screen with minimal refresh to prevent ghosting"
+  description: "Standalone Python application running as systemd service that continuously monitors the IPv4 address of the usb0 and wlan0 interfaces and displays them, with the hostname, on an e-Paper screen with minimal refresh to prevent ghosting"
   
-  context_flow: "Boot → systemd → Python Service → Network Detection → Display Update → 15s Poll Cycle"
+  context_flow: "Boot → systemd → Python Service → Interface Detection → Display Update → 15s Poll Cycle"
   
   primary_functions:
-    - "Detect WiFi interface IPv4 address using socket connection test"
+    - "Detect the IPv4 address of the usb0 and wlan0 interfaces by parsing 'ip -j addr show'"
     - "Initialize and control Waveshare e-Paper V4 HAT"
-    - "Render centered text displaying current IP or network status"
+    - "Render centered text displaying the hostname and per-interface address"
     - "Poll network status every 15 seconds"
-    - "Update display only when IP changes"
-    - "Handle network unavailability gracefully"
+    - "Update display only when an interface address changes"
+    - "Indicate 'no IP' per interface when unavailable"
     - "Run continuously as background service"
 ```
 
@@ -104,7 +105,7 @@ design_constraints:
     - "Python 3.x runtime environment"
     - "SPI interface must be enabled via raspi-config"
     - "GPIO access required for e-Paper control"
-    - "Network interface must be WiFi (not Ethernet)"
+    - "Network interfaces of interest are usb0 and wlan0"
     - "Single process execution model"
     - "E-Paper refresh limitations (ghosting prevention)"
   
@@ -112,7 +113,9 @@ design_constraints:
     language: "Python 3"
     framework: "None (standard library + hardware libraries)"
     libraries:
+      - "json (standard library)"
       - "socket (standard library)"
+      - "subprocess (standard library)"
       - "time (standard library)"
       - "PIL (Pillow - Python Imaging Library)"
       - "waveshare_epd.epd2in13_V4 (Waveshare driver)"
@@ -207,15 +210,17 @@ architecture:
     - "Initialize e-Paper display object"
     - "Clear display to white"
     - "Retrieve FQDN: try subprocess.check_output(['hostname', '-f'], text=True).strip(); except: socket.gethostname()"
-    - "Set last_ip cache to None"
+    - "Set last_state cache to None"
     - "Enter infinite while loop:"
-    - "  Get current IP from IP Detection Module"
-    - "  Format line2: 'IP: {ip}' or 'No Network'"
-    - "  Compare with cached last_ip"
-    - "  If different, call draw_text(epd, hostname, line2)"
-    - "  Update last_ip cache"
+    - "  Get usb0 IP via get_interface_ip('usb0'); wlan0 IP via get_interface_ip('wlan0')"
+    - "  Format 'usb0: {ip}' or 'usb0: no IP'; 'wlan0: {ip}' or 'wlan0: no IP'"
+    - "  Compute ap_active = (wlan_ip == PI_NETCONFIG_AP_IP, constant '192.168.50.1')"
+    - "  Compose state tuple (usb_text, wlan_text, ap_active); compare with cached last_state"
+    - "  If different, build lines [hostname, usb_text, wlan_text]; append 'AP mode active' if ap_active"
+    - "  Call draw_text(epd, lines)"
+    - "  Update last_state cache"
     - "  Sleep 15 seconds"
-  change_ref: "change-e2a7f1b3"
+  change_ref: "change-<pending>"
   
   error_conditions:
     - condition: "e-Paper initialization failure"
@@ -226,52 +231,51 @@ architecture:
 
 [Return to Table of Contents](<#table of contents>)
 
-### IP Detection Module
+### Interface Detection Module
 
 ```yaml
-- name: "IP Detection Module"
-  purpose: "Detect WiFi interface IPv4 address using socket connection probe"
+- name: "Interface Detection Module"
+  purpose: "Detect the IPv4 address of a named interface by parsing 'ip -j addr show'"
   
   responsibilities:
-    - "Create UDP socket connection to external host"
-    - "Extract local IP address from socket binding"
-    - "Return None on network unavailability"
-    - "Close socket resources properly"
+    - "Invoke 'ip -j addr show' and parse the JSON output"
+    - "Locate the entry matching the requested interface name"
+    - "Return the first inet (IPv4) address, or None"
+    - "Return None on subprocess or parse failure"
   
   inputs:
-    - field: "None (uses system network state)"
-      type: "implicit"
-      description: "Current network interface configuration"
+    - field: "interface"
+      type: "str"
+      description: "Interface name, e.g. 'usb0' or 'wlan0'"
   
   outputs:
     - field: "ip_address"
       type: "str or None"
-      description: "IPv4 address string (e.g., '192.168.1.100') or None if no network"
+      description: "IPv4 address string (e.g., '192.168.0.177') or None if the interface is absent or has no IPv4 address"
   
   key_elements:
-    - name: "get_ip"
+    - name: "get_interface_ip"
       type: "function"
-      purpose: "Detect WiFi IPv4 address via socket connection test"
+      purpose: "Return the first IPv4 address of the named interface"
   
   dependencies:
     internal: []
     external:
-      - "socket.socket"
-      - "socket.AF_INET"
-      - "socket.SOCK_DGRAM"
+      - "subprocess.check_output"
+      - "json.loads"
   
   processing_logic:
-    - "Create UDP socket (AF_INET, SOCK_DGRAM)"
-    - "Connect to 8.8.8.8:80 (does not send data, establishes route)"
-    - "Extract local address from socket.getsockname()[0]"
-    - "Close socket"
-    - "Return IP address string"
+    - "Run subprocess.check_output(['ip', '-j', 'addr', 'show'], text=True)"
+    - "Parse output via json.loads()"
+    - "Iterate interfaces; select the one whose ifname matches the argument"
+    - "Within its addr_info, return the first entry where family == 'inet' (the 'local' field)"
+    - "Return None if no match found"
     - "On any exception, return None"
   
   error_conditions:
-    - condition: "No network available"
+    - condition: "Interface absent or has no IPv4 address"
       handling: "Return None"
-    - condition: "Socket creation failure"
+    - condition: "subprocess or JSON parse failure"
       handling: "Return None via exception catch"
 ```
 
@@ -281,12 +285,12 @@ architecture:
 
 ```yaml
 - name: "Display Controller Module"
-  purpose: "Render two-line text on e-Paper display with centered layout"
-  change_ref: "change-3f7e9a2b"
+  purpose: "Render a list of text lines on the e-Paper display with centered layout"
+  change_ref: "change-<pending>"
   
   responsibilities:
     - "Create blank white image buffer"
-    - "Render two lines of text centered horizontally"
+    - "Render each line of text centered horizontally"
     - "Stack lines vertically centered as a block"
     - "Send image buffer to e-Paper hardware"
     - "Load TrueType font with fallback chain"
@@ -295,22 +299,19 @@ architecture:
     - field: "epd"
       type: "epd2in13_V4.EPD"
       description: "Initialized e-Paper display object"
-    - field: "line1"
-      type: "str"
-      description: "Top line text (hostname)"
-    - field: "line2"
-      type: "str"
-      description: "Bottom line text (IP address or 'No Network')"
+    - field: "lines"
+      type: "list[str]"
+      description: "Text lines to render, top to bottom (hostname, usb0, wlan0)"
   
   outputs:
     - field: "None (side effect: display updated)"
       type: "void"
-      description: "Two lines rendered on physical e-Paper screen"
+      description: "Lines rendered on physical e-Paper screen"
   
   key_elements:
     - name: "draw_text"
       type: "function"
-      purpose: "Render two centered lines on e-Paper display"
+      purpose: "Render a list of centered lines on e-Paper display"
   
   dependencies:
     internal: []
@@ -318,17 +319,15 @@ architecture:
       - "PIL.Image"
       - "PIL.ImageDraw"
       - "PIL.ImageFont"
-      - "socket.gethostname (hostname retrieved in main)"
   
   processing_logic:
     - "Create new image: Image.new('1', (epd.height, epd.width), 255) — swapped for rotation"
     - "Create drawing context: ImageDraw.Draw(image)"
-    - "Load TrueType font 24pt with fallback chain; fall back to load_default()"
+    - "Load TrueType font 20pt with fallback chain; fall back to load_default()"
     - "Calculate bounding box for each line via textbbox()"
-    - "Compute total block height: h1 + 4 + h2 (4px gap)"
+    - "Compute total block height: sum of line heights + 4px gap between lines"
     - "Calculate vertical start: y_start = (epd.width - total_h) // 2"
-    - "Draw line1 at (x_center_line1, y_start)"
-    - "Draw line2 at (x_center_line2, y_start + h1 + 4)"
+    - "Draw each line horizontally centered, advancing y by line height + 4px gap"
     - "Rotate image 90° counter-clockwise"
     - "Display: epd.display(epd.getbuffer(image))"
   
@@ -406,18 +405,25 @@ architecture:
 ```yaml
 data_design:
   entities:
-    - name: "IP State Cache"
-      purpose: "Track previous IP address to detect changes"
+    - name: "Interface State Cache"
+      purpose: "Track previous per-interface display text and AP status to detect changes"
       attributes:
-        - name: "last_ip"
-          type: "str or None"
-          constraints: "In-memory variable, not persisted"
+        - name: "last_state"
+          type: "tuple[str, str, bool] or None"
+          constraints: "In-memory variable (usb_text, wlan_text, ap_active), not persisted"
+      relationships: []
+    - name: "pi-netconfig AP IP constant"
+      purpose: "Detect pi-netconfig access point mode without process coupling or shared state"
+      attributes:
+        - name: "PI_NETCONFIG_AP_IP"
+          type: "str"
+          constraints: "Hardcoded '192.168.50.1', matching pi-netconfig's apmanager.py static AP subnet (192.168.50.1/24). External heuristic, not a stable interface; breaks silently if pi-netconfig changes its AP subnet."
       relationships: []
   
   storage: []
   
   validation_rules:
-    - "IP address must be valid IPv4 format (implicit via socket)"
+    - "IPv4 address format determined by 'ip' command output"
     - "Display text limited to e-Paper display dimensions"
 ```
 
@@ -432,29 +438,29 @@ data_design:
 ```yaml
 interfaces:
   internal:
-    - name: "get_ip"
-      purpose: "Retrieve current WiFi IPv4 address"
-      signature: "get_ip() -> str | None"
-      parameters: []
+    - name: "get_interface_ip"
+      purpose: "Retrieve the IPv4 address of a named interface"
+      signature: "get_interface_ip(interface: str) -> str | None"
+      parameters:
+        - name: "interface"
+          type: "str"
+          description: "Interface name, e.g. 'usb0' or 'wlan0'"
       returns:
         type: "str or None"
-        description: "IPv4 address string or None if network unavailable"
+        description: "IPv4 address string, or None if absent or no IPv4"
       raises: []
     
     - name: "draw_text"
-      purpose: "Render two-line text on e-Paper display"
-      signature: "draw_text(epd: EPD, line1: str, line2: str) -> None"
-      change_ref: "change-3f7e9a2b"
+      purpose: "Render a list of text lines on e-Paper display"
+      signature: "draw_text(epd: EPD, lines: list[str]) -> None"
+      change_ref: "change-<pending>"
       parameters:
         - name: "epd"
           type: "epd2in13_V4.EPD"
           description: "Initialized e-Paper display object"
-        - name: "line1"
-          type: "str"
-          description: "Top line (hostname)"
-        - name: "line2"
-          type: "str"
-          description: "Bottom line (IP address or 'No Network')"
+        - name: "lines"
+          type: "list[str]"
+          description: "Lines to render, top to bottom (hostname, usb0, wlan0)"
       returns:
         type: "None"
         description: "Side effect: updates physical display"
@@ -485,9 +491,9 @@ interfaces:
       specification: "Type=simple, User=pi, WorkingDirectory=/home/pi/epaper-ip, ExecStart=/usr/bin/python3 script path"
     
     - name: "Network Interface"
-      protocol: "Socket UDP connection probe"
-      data_format: "IPv4 address string"
-      specification: "Socket connection to 8.8.8.8:80 to determine routing interface"
+      protocol: "iproute2 'ip -j addr show' command"
+      data_format: "JSON; IPv4 address strings extracted per interface"
+      specification: "Parse JSON for usb0 and wlan0 addr_info entries with family 'inet'"
 ```
 
 [Return to Table of Contents](<#table of contents>)
@@ -787,6 +793,10 @@ flowchart TD
 | 0.1.0   | 2025-11-21 | William Watson  | Initial master design document   |
 | 0.2.0   | 2026-03-18 | William Watson  | Added hostname display: updated Display Controller, Main Loop, Internal Interfaces; change-3f7e9a2b |
 | 0.3.0   | 2026-03-20 | William Watson  | Changed hostname to FQDN via hostname -f with fallback; updated Main Application Loop processing_logic; change-e2a7f1b3 |
+| 0.4.0   | 2026-06-30 | William Watson  | Replaced single-IP socket detection with per-interface detection (usb0, wlan0) via 'ip -j addr show'; generalized draw_text to a line list; updated Scope, System Overview, Constraints, Interface Detection Module, Display Controller, Main Loop, Data Design, Interfaces |
+| 0.4.1   | 2026-06-30 | William Watson  | Reduced font size 24pt → 18pt in Display Controller processing_logic to prevent horizontal clipping of usb0/wlan0 address lines |
+| 0.4.2   | 2026-06-30 | William Watson  | Increased font size 18pt → 20pt for readability, per user request; width fit against 250px budget not re-verified on hardware |
+| 0.5.0   | 2026-06-30 | William Watson  | Added pi-netconfig access point detection via wlan0 address match against PI_NETCONFIG_AP_IP ('192.168.50.1'); appends 'AP mode active' fourth line when detected; vertical (76/122px) and horizontal (max 219/250px) fit verified via PIL textbbox measurement; updated Scope, Main Loop, Data Design |
 
 [Return to Table of Contents](<#table of contents>)
 

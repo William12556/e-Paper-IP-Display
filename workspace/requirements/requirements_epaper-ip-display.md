@@ -56,22 +56,22 @@ functional_requirements:
 
   - id: "a3f1b200"
     type: "functional"
-    description: "Display WiFi IPv4 address on e-Paper screen"
+    description: "Display the IPv4 address of the usb0 and wlan0 interfaces on e-Paper screen"
     acceptance_criteria:
-      - "IP address rendered as 'IP: <address>' on display"
-      - "Address obtained via socket UDP probe to 8.8.8.8:80"
-    source: "source code"
+      - "usb0 address rendered as 'usb0: <address>'; wlan0 as 'wlan0: <address>'"
+      - "Addresses obtained by parsing 'ip -j addr show' (family 'inet')"
+    source: "requirement_change"
     rationale: "Core purpose of the application"
     dependencies: []
 
   - id: "b4c2d300"
     type: "functional"
-    description: "Display 'No Network' when WiFi is unavailable"
+    description: "Display 'no IP' per interface when an interface lacks an IPv4 address"
     acceptance_criteria:
-      - "Display shows 'No Network' when socket probe fails"
-      - "Transitions back to IP display when network restored"
-    source: "source code"
-    rationale: "Graceful degradation for disconnected state"
+      - "Line shows 'usb0: no IP' or 'wlan0: no IP' when that interface has no inet address"
+      - "Transitions to address display when the interface acquires an IPv4 address"
+    source: "requirement_change"
+    rationale: "Graceful indication of a disconnected or unconfigured interface"
     dependencies: ["a3f1b200"]
 
   - id: "c5e3f400"
@@ -85,11 +85,11 @@ functional_requirements:
 
   - id: "d6a4b500"
     type: "functional"
-    description: "Update display only when IP state changes"
+    description: "Update display only when interface state changes"
     acceptance_criteria:
-      - "last_ip cache compared before triggering display refresh"
-      - "No display update when IP is unchanged"
-    source: "source code"
+      - "last_state cache (usb_text, wlan_text) compared before triggering display refresh"
+      - "No display update when both interface lines are unchanged"
+    source: "requirement_change"
     rationale: "Minimises e-Paper refresh cycles"
     dependencies: ["a3f1b200", "c5e3f400"]
 
@@ -105,14 +105,25 @@ functional_requirements:
 
   - id: "g9d7e810"
     type: "functional"
-    description: "Display FQDN on top line above IP address / No Network"
+    description: "Display FQDN on top line above the interface address lines"
     acceptance_criteria:
       - "FQDN retrieved via subprocess call to 'hostname -f'; fallback to socket.gethostname() on failure"
-      - "FQDN line appears above IP address or No Network line"
-      - "Both lines centered horizontally on display"
+      - "FQDN line appears above the usb0 and wlan0 lines"
+      - "All lines centered horizontally on display"
     source: "requirement_change"
     rationale: "Device identification with fully qualified name; distinguishes devices sharing a short hostname"
     dependencies: ["a3f1b200"]
+
+  - id: "i1f9a030"
+    type: "functional"
+    description: "Detect pi-netconfig access point mode and display an indicator line"
+    acceptance_criteria:
+      - "wlan0 address compared against PI_NETCONFIG_AP_IP constant ('192.168.50.1')"
+      - "When matched, a fourth line reading 'AP mode active' is appended below the usb0/wlan0 lines"
+      - "Line absent when wlan0 address does not match (normal client mode or no IP)"
+    source: "requirement_change"
+    rationale: "Visibility into pi-netconfig fallback access point status without modifying or depending on the pi-netconfig process"
+    dependencies: ["a3f1b200", "d6a4b500"]
 
   - id: "f8c6d700"
     type: "functional"
@@ -228,15 +239,28 @@ architectural_requirements:
 
   - id: "ar5b6c70"
     type: "architectural"
-    description: "Text rendered at 24pt TrueType with 90° CCW rotation"
+    description: "Text rendered at 20pt TrueType with 90° CCW rotation"
     acceptance_criteria:
-      - "Font size 24pt; LiberationSans-Bold preferred"
+      - "Font size 20pt; LiberationSans-Bold preferred"
       - "Image rotated 90° counter-clockwise before display"
     constraints:
       - "Display physical dimensions: 122 × 250 px"
-    source: "source code"
-    rationale: "Legibility and orientation of HAT on device"
+      - "Reduced from 24pt to 18pt, then raised to 20pt for readability; horizontal fit verified via PIL textbbox measurement (worst case 'wlan0: 255.255.255.255' = 219px against 250px budget); not yet confirmed on physical hardware"
+    source: "requirement_change"
+    rationale: "Legibility and orientation of HAT on device; 24pt overflowed the 250px width budget; 20pt confirmed to fit by measurement"
     dependencies: ["ar4f5a60"]
+
+  - id: "ar6c7d80"
+    type: "architectural"
+    description: "AP mode detection is an external IP-match heuristic, not a pi-netconfig integration"
+    acceptance_criteria:
+      - "No import of, or process coupling to, pi_netconfig package"
+      - "Detection relies solely on wlan0 IPv4 address comparison via the existing 'ip -j addr show' call"
+    constraints:
+      - "PI_NETCONFIG_AP_IP ('192.168.50.1') hardcoded from pi-netconfig's apmanager.py static AP subnet; if pi-netconfig changes its AP subnet, detection silently fails (wlan0 line still displays correctly, but as 'wlan0:' rather than triggering the AP indicator)"
+    source: "requirement_change"
+    rationale: "Avoids dependency on pi-netconfig's internal, unpersisted, in-process state, which is not externally queryable"
+    dependencies: ["a3f1b200"]
 ```
 
 [Return to Table of Contents](<#table of contents>)
@@ -266,15 +290,18 @@ traceability:
     - req_id: "g9d7e810"
       design_doc: "workspace/design/design-0000-master_epaper-ip-display.md"
       design_section: "Display Controller Module"
+    - req_id: "i1f9a030"
+      design_doc: "workspace/design/design-0000-master_epaper-ip-display.md"
+      design_section: "Main Application Loop"
     - req_id: "f8c6d700"
       design_doc: "workspace/design/design-0000-master_epaper-ip-display.md"
       design_section: "Installation Framework"
   code_refs:
     - req_id: "a3f1b200"
-      component: "get_ip"
+      component: "get_interface_ip"
       file_path: "src/epaper_ip_display.py"
     - req_id: "b4c2d300"
-      component: "get_ip"
+      component: "get_interface_ip"
       file_path: "src/epaper_ip_display.py"
     - req_id: "c5e3f400"
       component: "main"
@@ -287,6 +314,9 @@ traceability:
       file_path: "src/epaper-ip-display.service"
     - req_id: "g9d7e810"
       component: "draw_text"
+      file_path: "src/epaper_ip_display.py"
+    - req_id: "i1f9a030"
+      component: "main"
       file_path: "src/epaper_ip_display.py"
     - req_id: "f8c6d700"
       component: "epaper-ip-install.sh"
@@ -307,7 +337,7 @@ traceability:
 
 ```yaml
 validation:
-  completeness_check: "Requirements cover all observable behaviours in src/epaper_ip_display.py v0.1.0 plus requirement change g9d7e810"
+  completeness_check: "Requirements cover all observable behaviours in src/epaper_ip_display.py plus requirement changes g9d7e810, the usb0/wlan0 multi-interface change, and pi-netconfig AP detection (i1f9a030, ar6c7d80)"
   clarity_check: "All requirements have objective acceptance criteria"
   testability_check: "All requirements verifiable on target hardware or via inspection"
   conflicts_identified: []
@@ -324,6 +354,10 @@ validation:
 | 1.0 | 2026-03-18 | William Watson | Initial — reverse-engineered from src/epaper_ip_display.py v0.1.0 |
 | 1.1 | 2026-03-19 | William Watson | Added requirement g9d7e810: hostname display above IP/No Network line |
 | 1.2 | 2026-03-20 | William Watson | Amended g9d7e810: changed from short hostname to FQDN via hostname -f; added fallback to socket.gethostname() |
+| 1.3 | 2026-06-30 | William Watson | Amended a3f1b200, b4c2d300, d6a4b500, g9d7e810: display usb0 and wlan0 IPv4 addresses via 'ip -j addr show'; per-interface 'no IP'; updated traceability code-refs to get_interface_ip |
+| 1.4 | 2026-06-30 | William Watson | Amended ar5b6c70: font size 24pt → 18pt to prevent horizontal clipping of usb0/wlan0 address lines |
+| 1.5 | 2026-06-30 | William Watson | Amended ar5b6c70: font size 18pt → 20pt for readability, per user request; width fit not re-verified on hardware |
+| 1.6 | 2026-06-30 | William Watson | Added i1f9a030 (pi-netconfig AP mode indicator line) and ar6c7d80 (external IP-match heuristic, no pi-netconfig coupling); amended ar5b6c70 with measured width verification |
 
 ---
 

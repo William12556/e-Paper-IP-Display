@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import socket
 import subprocess
 import time
@@ -11,17 +12,25 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 
-def get_ip():
+PI_NETCONFIG_AP_IP = "192.168.50.1"
+
+def get_interface_ip(interface):
+    """Return the first IPv4 address of the named interface, or None."""
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
+        output = subprocess.check_output(['ip', '-j', 'addr', 'show'], text=True)
+        interfaces = json.loads(output)
     except Exception:
         return None
 
-def draw_text(epd, line1, line2):
+    for iface in interfaces:
+        if iface.get('ifname') != interface:
+            continue
+        for addr in iface.get('addr_info', []):
+            if addr.get('family') == 'inet':
+                return addr.get('local')
+    return None
+
+def draw_text(epd, lines):
     image = Image.new('1', (epd.height, epd.width), 255)
     draw = ImageDraw.Draw(image)
 
@@ -34,7 +43,7 @@ def draw_text(epd, line1, line2):
     font = None
     for font_path in font_paths:
         try:
-            font = ImageFont.truetype(font_path, 24)
+            font = ImageFont.truetype(font_path, 20)
             break
         except Exception:
             continue
@@ -42,21 +51,21 @@ def draw_text(epd, line1, line2):
     if font is None:
         font = ImageFont.load_default()
 
-    bbox1 = draw.textbbox((0, 0), line1, font=font)
-    w1 = bbox1[2] - bbox1[0]
-    h1 = bbox1[3] - bbox1[1]
-    bbox2 = draw.textbbox((0, 0), line2, font=font)
-    w2 = bbox2[2] - bbox2[0]
-    h2 = bbox2[3] - bbox2[1]
-
     gap = 4
-    total_h = h1 + gap + h2
-    y_start = (epd.width - total_h) // 2
-    x1 = (epd.height - w1) // 2
-    x2 = (epd.height - w2) // 2
+    metrics = []
+    for line in lines:
+        bbox = draw.textbbox((0, 0), line, font=font)
+        w = bbox[2] - bbox[0]
+        h = bbox[3] - bbox[1]
+        metrics.append((w, h))
 
-    draw.text((x1, y_start), line1, font=font, fill=0)
-    draw.text((x2, y_start + h1 + gap), line2, font=font, fill=0)
+    total_h = sum(h for _, h in metrics) + gap * (len(lines) - 1)
+    y = (epd.width - total_h) // 2
+
+    for line, (w, h) in zip(lines, metrics):
+        x = (epd.height - w) // 2
+        draw.text((x, y), line, font=font, fill=0)
+        y += h + gap
 
     image = image.rotate(90, expand=True)
     epd.display(epd.getbuffer(image))
@@ -72,16 +81,23 @@ def main():
         hostname = subprocess.check_output(['hostname', '-f'], text=True).strip()
     except Exception:
         hostname = socket.gethostname()
-    last_ip = None
+    last_state = None
 
     while True:
-        ip = get_ip()
-        ip_text = f"IP: {ip}" if ip else "No Network"
+        usb_ip = get_interface_ip('usb0')
+        wlan_ip = get_interface_ip('wlan0')
+        usb_text = f"usb0: {usb_ip}" if usb_ip else "usb0: no IP"
+        wlan_text = f"wlan0: {wlan_ip}" if wlan_ip else "wlan0: no IP"
+        ap_active = (wlan_ip == PI_NETCONFIG_AP_IP)
+        state = (usb_text, wlan_text, ap_active)
 
-        if ip_text != last_ip:
-            logging.info(f"Updating display: {hostname} | {ip_text}")
-            draw_text(epd, hostname, ip_text)
-            last_ip = ip_text
+        if state != last_state:
+            lines = [hostname, usb_text, wlan_text]
+            if ap_active:
+                lines.append("AP mode active")
+            logging.info(f"Updating display: {hostname} | {usb_text} | {wlan_text} | AP active: {ap_active}")
+            draw_text(epd, lines)
+            last_state = state
 
         time.sleep(15)
 

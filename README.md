@@ -71,9 +71,10 @@ sudo journalctl -u epaper-ip-display -f
 ## Operation
 
 - Display clears on boot
-- Shows hostname and current IPv4 address, or "No Network"
+- Shows hostname, plus the IPv4 address of the `usb0` and `wlan0` interfaces (or "no IP" per interface when unavailable)
+- Detects `pi-netconfig` access point mode (wlan0 address `192.168.50.1`) and adds an "AP mode active" line when detected
 - Polls network status every 15 seconds
-- Updates display only when IP changes
+- Updates display only when an interface address or AP mode status changes
 - Runs as systemd service with root privileges (required for GPIO access)
 
 ## Waveshare Resources
