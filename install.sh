@@ -125,6 +125,27 @@ fi
 echo "Installed version: $INSTALLED"
 
 # ---------------------------------------------------------------------------
+# Integrity verification (interpreter + entry-point module)
+# ---------------------------------------------------------------------------
+echo "==> Verifying interpreter..."
+if ! sudo "$VENV_DIR/bin/python" --version >/dev/null 2>&1; then
+    echo "ERROR: venv interpreter not executable: $VENV_DIR/bin/python"
+    exit 1
+fi
+
+echo "==> Verifying entry-point module..."
+if ! sudo "$VENV_DIR/bin/python" - <<'PY'
+import importlib.util, os, sys
+spec = importlib.util.find_spec("epaper_ip_display.main")
+if spec is None or not spec.origin or os.path.getsize(spec.origin) == 0:
+    sys.exit(1)
+PY
+then
+    echo "ERROR: entry-point module epaper_ip_display.main missing or empty (possible corrupt install)"
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
 # systemd service
 # ---------------------------------------------------------------------------
 echo "==> Writing systemd service file..."
@@ -139,7 +160,7 @@ Type=simple
 User=root
 WorkingDirectory=$INSTALL_DIR
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$VENV_DIR/bin/epaper-ip-display
+ExecStart=$VENV_DIR/bin/python -m epaper_ip_display.main
 Restart=always
 RestartSec=5
 StandardOutput=journal
