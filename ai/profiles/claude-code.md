@@ -1,6 +1,6 @@
-Created: 2026 April 30
+Created: 2026 March 31
 
-# Implementation Profile: claude-omlx
+# Implementation Profile: Claude Code (Optional)
 
 ---
 
@@ -10,7 +10,7 @@ Created: 2026 April 30
 - [2.0 Placeholder Mappings](<#2.0 placeholder mappings>)
 - [3.0 Strategic Domain](<#3.0 strategic domain>)
 - [4.0 Tactical Domain](<#4.0 tactical domain>)
-- [5.0 Invocation](<#5.0 invocation>)
+- [5.0 Claude Code Task invocation](<#5.0 claude code task invocation>)
 - [6.0 Project Setup](<#6.0 project setup>)
 - [Version History](<#version history>)
 
@@ -18,14 +18,14 @@ Created: 2026 April 30
 
 ## 1.0 Overview
 
-This profile routes Claude Code CLI through the local oMLX inference server instead of the Anthropic API. It provides Claude Code tooling and invocation UX with Devstral as the underlying model.
+This profile maps governance abstract placeholders to Claude Code tooling. It is an optional alternative to the MLX/Devstral profile, intended for use when the local inference stack is unavailable.
 
 Claude Code fulfils both the worker and reviewer roles in a single manual pass. There is no automated AEL loop; the human operator controls the workflow and performs the review gate.
 
 | Concern | Implementation |
 |---|---|
 | Strategic Domain | Claude Desktop (preferred) |
-| Tactical Domain | Claude Code CLI → oMLX → Devstral |
+| Tactical Domain | Claude Code |
 | AEL mechanism | Manual — human invokes Claude Code per task |
 
 [Return to Table of Contents](<#table of contents>)
@@ -57,7 +57,7 @@ Any frontier model with sufficient reasoning capability may substitute. The Stra
 
 ## 4.0 Tactical Domain
 
-**Implementation:** Claude Code CLI redirected to oMLX via `ANTHROPIC_BASE_URL`
+**Implementation:** Claude Code
 
 Configuration directory: `.claude/`
 
@@ -66,36 +66,34 @@ Context file: `CLAUDE.md` at project root (checked into git).
 Local context file: `CLAUDE.local.md` at project root (`.gitignore`'d).
 
 **Prerequisites:**
-- oMLX running on `http://127.0.0.1:8000` with Devstral loaded
+- Anthropic API key configured
 - Claude Code installed: `npm install -g @anthropic-ai/claude-code`
-- No Anthropic API key required (local inference only)
-
-**Note:** Claude Code must be invoked in a clean environment to prevent a persisted claude.ai session token from overriding `ANTHROPIC_BASE_URL`. Use `env -i` as shown in the invocation procedure below.
 
 [Return to Table of Contents](<#table of contents>)
 
 ---
 
-## 5.0 Invocation
+## 5.0 Claude Code Task invocation
 
 Claude Code fulfils both the worker and reviewer roles in a single manual pass. There is no worker/reviewer cycle; the human operator performs the review gate.
 
 **Procedure:**
 
-1. Ensure oMLX is running with Devstral loaded.
-2. Strategic Domain authors and approves the T03 prompt per the standard workflow.
-3. Open a terminal in the project root.
-4. Issue the following command, substituting the actual T03 file path:
+1. Strategic Domain authors and approves the T03 prompt per the standard workflow.
+2. Open Claude Code in the project root.
+3. Issue the following instruction, substituting the actual T03 file path:
 
-```bash
-env -i HOME="$HOME" PATH="$PATH" \
-  ANTHROPIC_BASE_URL=http://127.0.0.1:8000 \
-  ANTHROPIC_AUTH_TOKEN=local \
-  claude "implement ai/workspace/prompt/prompt-<uuid>-<n>.md"
+```
+Implement ai/workspace/prompt/prompt-<uuid>-<name>.md and close the prompt T-Doc
+when finished. Leave the issue and change T-Docs active pending test results.
+Then, once finished, write a report of what you have done in
+ai/workspace/report/report-<uuid>-<name>.md.
 ```
 
-5. Claude Code reads the T03 prompt from disk and implements the task via Devstral.
-6. The human operator reviews the result and accepts or requests changes.
+4. Claude Code reads the T03 prompt from disk and implements the task.
+5. The human operator reviews the result and accepts or requests changes.
+
+Reference: `ai/governance.md` P13.3 Option C.
 
 [Return to Table of Contents](<#table of contents>)
 
@@ -106,10 +104,9 @@ env -i HOME="$HOME" PATH="$PATH" \
 **.gitignore additions:**
 
 ```
-# claude-omlx profile - Tactical Domain
+# Claude Code profile - Tactical Domain
 CLAUDE.local.md
 .claude/settings.json
-.claude/commands/
 ```
 
 **Directory structure additions (within project root):**
@@ -129,10 +126,11 @@ CLAUDE.local.md
 
 | Version | Date | Description |
 |---|---|---|
-| 1.0 | 2026-04-30 | Initial document; claude-omlx as alternative tactical profile; Claude Code CLI routed through oMLX/Devstral; manual single-pass invocation via T04 file path |
+| 1.0 | 2026-03-31 | Initial document; Claude Code as optional alternative to MLX/Devstral profile; manual single-pass invocation via T04 file path |
 | 1.1 | 2026-06-14 | workspace/ → ai/workspace/ in invocation example |
 | 1.2 | 2026-06-16 | Added section numbering throughout |
 | 1.3 | 2026-06-17 | Removed <tactical_config>/ and <skills_dir>/ placeholder rows from §2.0; added note that .claude/ is a native Claude Code directory |
+| 1.4 | 2026-08-19 | §5.0: corrected report path defect (ai/workspace/report-<uuid>-<name>.md → ai/workspace/report/report-<uuid>-<name>.md, aligning with governance §1.2.6 canonical directory); added cross-reference to governance §1.10.3 Option C |
 
 ---
 
