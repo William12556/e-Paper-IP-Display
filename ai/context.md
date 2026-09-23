@@ -6,11 +6,11 @@ Created: 2026 June 17
 
 ## 1.0 Project
 
-**Name:** \<project-name\>
-**Description:** \<one-line description\>
+**Name:** e-Paper IP Display
+**Description:** Shows the Raspberry Pi's WiFi IPv4 address and hostname on a Waveshare 2.13" Touch e-Paper HAT V4; runs as a systemd service, polls every 15 s and redraws only on change.
 
-**Technology stack:** Python 3.11 | \<list key libraries\>
-**Target platform:** \<deployment target — e.g. macOS, Raspberry Pi, Linux\>
+**Technology stack:** Python 3.9+ | Pillow, spidev, gpiozero, lgpio (system package `python3-lgpio`); bundled Waveshare driver `epd2in13_V4` (direct import)
+**Target platform:** Raspberry Pi OS (Debian Bookworm or later), aarch64, SPI and I²C enabled; service runs as root
 
 ---
 
@@ -18,25 +18,28 @@ Created: 2026 June 17
 
 | Action | Command |
 |---|---|
-| Install | `pip install -e .[dev]` |
-| Test | `pytest tests/` |
-| Lint | \<lint command\> |
-| Build | \<build command or n/a\> |
+| Install (dev) | `pip install -e .[dev]` |
+| Install (Pi) | `./bin/install.sh` (latest release), `./bin/install.sh <version>` or `./bin/install.sh <path-to-wheel>` |
+| Test | `pytest tests/` (no tests exist yet) |
+| Lint | n/a (none configured) |
+| Build | `./bin/build.sh` |
+| Release | `./bin/release.sh` (requires authenticated `gh` CLI) |
 
 ---
 
 ## 3.0 Code Style
 
-- \<style guideline — e.g. PEP 8, type hints required\>
-- \<style guideline — e.g. docstrings on public functions\>
-- \<style guideline — e.g. max line length 100\>
+- PEP 8
+- Pillow: use `textbbox()`, not the deprecated `textsize()`
+- Import the driver directly: `import epd2in13_V4` (not the `waveshare_epd` package)
+- Display is 122 × 250 px physical, rendered as 250 × 122 (rotated 90° CCW); font LiberationSans-Bold 24 pt with fallbacks
 
 ---
 
 ## 4.0 Repository Conventions
 
-**Branches:** \<naming pattern — e.g. feature/\*, fix/\*\>
-**Commits:** \<format — e.g. conventional commits: feat:, fix:, docs:\>
+**Branches:** `main` only; no feature branches in use.
+**Commits:** conventional commits (`feat:`, `fix:`, `docs:`, `chore:`).
 
 ---
 
@@ -46,6 +49,7 @@ Created: 2026 June 17
 |---|---|
 | Governance | `ai/governance.md` |
 | Designs | `ai/workspace/design/` |
+| Changes | `ai/workspace/change/` |
 | Prompts | `ai/workspace/prompt/` |
 | Issues | `ai/workspace/issues/` |
 
@@ -55,7 +59,8 @@ Created: 2026 June 17
 
 | Version | Date | Description |
 |---|---|---|
-| 0.1 | \<YYYY-MM-DD\> | Initial template |
+| 0.1 | 2026-06-17 | Initial template |
+| 1.0 | 2026-09-23 | Project context filled in (e-Paper IP Display) |
 
 ---
 
