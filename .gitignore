@@ -40,3 +40,6 @@ workspace/proposal/closed/
 test.txt
 **/tmp
 *.pdf
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -7,7 +7,7 @@ Runs as a systemd service. Polls network every 15 seconds. Updates display only 
 
 ## Governance
 
-- Framework: `ai/governance.md`
+- Framework: `ai/governance/software-engineering/governance.md`
 - Design documents: `ai/workspace/design/`
 - Protocol compliance required. Do not create, add, remove or change source code or documents unless explicitly instructed by a T03 prompt.
 
@@ -38,7 +38,7 @@ Runs as a systemd service. Polls network every 15 seconds. Updates display only 
 ## AEL Invocation
 
 ```bash
-python ai/ael/src/orchestrator.py --mode loop --task ai/workspace/prompt/prompt-<uuid>-<n>.md
+python ai/engine/src/orchestrator.py --mode loop --task ai/workspace/prompt/prompt-<uuid>-<n>.md
 ```
 
 ## Tool Calling
